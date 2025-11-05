@@ -3,6 +3,7 @@ import streamlit as st
 import sqlglot
 from sqlglot import exp
 import platform
+import streamlit.components.v1 as components
 
 # ----------------------------------------------------------
 PARTITION_COLS = {
@@ -460,6 +461,9 @@ def transform_query(query: str, PARTITION_COLS: dict) -> str:
     processed_query = processed.sql(pretty=True, dialect='trino')
     return processed_query
 
+# ====================================================
+# 🖥️ Streamlit UI
+# ====================================================
 # ---------- PAGE CONFIG ----------
 st.set_page_config(
     page_title="QueryTune",
@@ -467,142 +471,46 @@ st.set_page_config(
     layout="wide",
 )
 
-# ---------- CUSTOM CSS ----------
-st.markdown("""
-    <style>
-    /* General Page Styling */
-    body {
-        background-color: #0e1117;
-    }
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 0rem;
-    }
+st.title("QueryTune - sql partition filter adder")
+# st.write("Automatically adds partition filters to all tables in your SQL query.")
 
-    /* Title and Header Styling */
-    .app-header {
-        text-align: center;
-        margin-bottom: 1.5rem;
-    }
-    .app-header h1 {
-        font-size: 2rem;
-        margin-bottom: 0.2rem;
-        color: white;
-    }
-    .app-header h2 {
-        font-size: 1rem;
-        color: #bbb;
-        margin-top: 0;
-        font-weight: normal;
-    }
+input_query = st.text_area("", height=300, key="input_query", placeholder="Paste your sql query here...")
 
-    /* Code Box Styling */
-    .sql-box {
-        background-color: #1e1e1e;
-        color: #dcdcdc;
-        border-radius: 10px;
-        padding: 1rem;
-        font-family: monospace;
-        min-height: 500px;
-        max-height: 500px;
-        overflow-y: auto;
-        border: 1px solid #333;
-    }
-
-    /* Buttons Styling */
-    .bottom-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-        margin-top: 1rem;
-    }
-
-    .stButton>button {
-        width: 150px;
-        border-radius: 10px;
-        border: none;
-        background-color: #0e76fd;
-        color: white;
-        font-weight: 600;
-        transition: 0.2s ease;
-    }
-    .stButton>button:hover {
-        background-color: #0055cc;
-    }
-
-    /* Hint text under buttons */
-    .shortcut-hint {
-        text-align: center;
-        color: #888;
-        font-size: 0.8rem;
-        margin-top: 0.4rem;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# ---------- HEADER ----------
-st.markdown("""
-<div class="app-header">
-    <h1>QueryTune</h1>
-</div>
-""", unsafe_allow_html=True)
-
-# ---------- STREAMLIT UI LAYOUT ----------
-col1, col2 = st.columns(2, gap="large")
-
-# ---- Left: Input SQL ---- #
+col1, col2 = st.columns(2)
 with col1:
-    st.subheader("Input SQL Query")
-    sql_input = st.text_area(
-        "",
-        height=500,
-        placeholder="Paste your SQL query here...",
-        key="input_query",
-    )
-
-# ---- Right: Output SQL ---- #
+    run_button = st.button("➕ Add Partition Filters", type="primary")
 with col2:
-    st.subheader("Transformed Query")
+    copy_button = st.button("📋 Copy Transformed Query")
 
-    # Display Transformed Query
-    output_box = st.empty()
-    if "output_query" not in st.session_state:
-        st.session_state["output_query"] = ""
+# -----------------------------
 
-    output_box.markdown(
-        f"<div class='sql-box'>{st.session_state['output_query']}</div>",
-        unsafe_allow_html=True,
-    )
-
-    # Buttons side-by-side below output
-    button_col1, button_col2 = st.columns([1, 1])
-    with button_col1:
-        generate_clicked = st.button("Generate", key="generate_btn", use_container_width=True)
-    with button_col2:
-        copy_output = st.button("Copy Output", key="copy_btn", use_container_width=True)
-
-# ---------- BUTTON ACTIONS ----------
-if generate_clicked or st.session_state.get("trigger_generate", False):
-    transformed = transform_query(sql_input, PARTITION_COLS)
+if run_button and input_query.strip():
+    transformed = transform_query(input_query, PARTITION_COLS)
     st.session_state["output_query"] = transformed
-    output_box.markdown(
-        f"<div class='sql-box'>{transformed}</div>", unsafe_allow_html=True
-    )
-    st.session_state["trigger_generate"] = False
+    # st.code(transformed, language="sql")
 
-if copy_output and st.session_state["output_query"]:
-    # Safely escape backticks and backslashes for JS string
-    safe_query = (
-        st.session_state["output_query"]
-        .replace("\\", "\\\\")
-        .replace("`", "\\`")
-    )
+if "output_query" in st.session_state and st.session_state["output_query"]:
+    st.subheader("Transformed Query:")
+    st.code(st.session_state["output_query"], language="sql")
 
-    # Use JavaScript to copy text (works on Streamlit Cloud)
-    st.markdown(f"""
-        <script>
-        navigator.clipboard.writeText(`{safe_query}`);
-        </script>
-    """, unsafe_allow_html=True)
-
+if copy_button and "output_query" in st.session_state and st.session_state["output_query"]:
+    output_text = st.session_state["output_query"].strip()
     st.toast("✅ Copied to clipboard!", icon="📋")
+
+    # --- 1️⃣ Local environment fallback using pyperclip ---
+    try:
+        import pyperclip
+        pyperclip.copy(output_text)
+    except Exception:
+        # --- 2️⃣ Streamlit Cloud fallback: Browser JS ---
+        st.components.v1.html(
+            f"""
+            <textarea id="copyTarget" style="opacity:0;">{output_text}</textarea>
+            <script>
+            const textArea = document.getElementById('copyTarget');
+            textArea.select();
+            document.execCommand('copy');
+            </script>
+            """,
+            height=0,
+        )
