@@ -456,108 +456,152 @@ def transform_query(query: str, PARTITION_COLS: dict) -> str:
     
     parsed = sqlglot.parse_one(query)
     processed = process_all_selects(parsed)
-    processed_query = processed.sql(pretty=True)
+    processed_query = processed.sql(pretty=True, dialect='trino')
     return processed_query
 
-# ----------------------------------------------------------
-# 🎨 Streamlit UI Configuration
-# ----------------------------------------------------------
-st.set_page_config(page_title="QueryTune", layout="wide", initial_sidebar_state="collapsed")
-
-st.markdown(
-    """
-    <style>
-        [data-testid="stAppViewContainer"] {
-            background-color: #0E1117;
-            color: #FAFAFA;
-        }
-        [data-testid="stHeader"] {background: rgba(0,0,0,0);}
-        textarea, .stTextArea textarea {
-            background-color: #1E1E1E !important;
-            color: #FAFAFA !important;
-            border-radius: 8px;
-        }
-        .stButton>button {
-            background-color: #262730 !important;
-            color: #FAFAFA !important;
-            border-radius: 8px;
-            border: 1px solid #444 !important;
-            padding: 0.5rem 1rem;
-            font-weight: 600;
-        }
-        .stButton>button:hover {
-            background-color: #3a3b45 !important;
-            border-color: #666 !important;
-            color: #00FFB3 !important;
-        }
-        code, pre {
-            background-color: #1C1F26 !important;
-            color: #00FFB3 !important;
-            border-radius: 10px !important;
-            padding: 1rem !important;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True
+# ---------- PAGE CONFIG ----------
+st.set_page_config(
+    page_title="QueryTune",
+    page_icon="/Users/vaibh/Documents/QueryTune_App/QueryTune/images/code.png",
+    layout="wide",
 )
 
-# ----------------------------------------------------------
-# ⚡ App Layout
-# ----------------------------------------------------------
-st.title("🎛️ QueryTune — Auto Add Partition Filters")
+# ---------- CUSTOM CSS ----------
+st.markdown("""
+    <style>
+    /* General Page Styling */
+    body {
+        background-color: #0e1117;
+    }
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 0rem;
+    }
 
-left, right = st.columns(2)
+    /* Title and Header Styling */
+    .app-header {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+    .app-header h1 {
+        font-size: 2rem;
+        margin-bottom: 0.2rem;
+        color: white;
+    }
+    .app-header h2 {
+        font-size: 1rem;
+        color: #bbb;
+        margin-top: 0;
+        font-weight: normal;
+    }
 
-with left:
+    /* Code Box Styling */
+    .sql-box {
+        background-color: #1e1e1e;
+        color: #dcdcdc;
+        border-radius: 10px;
+        padding: 1rem;
+        font-family: monospace;
+        min-height: 500px;
+        max-height: 500px;
+        overflow-y: auto;
+        border: 1px solid #333;
+    }
+
+    /* Buttons Styling */
+    .bottom-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .stButton>button {
+        width: 150px;
+        border-radius: 10px;
+        border: none;
+        background-color: #0e76fd;
+        color: white;
+        font-weight: 600;
+        transition: 0.2s ease;
+    }
+    .stButton>button:hover {
+        background-color: #0055cc;
+    }
+
+    /* Hint text under buttons */
+    .shortcut-hint {
+        text-align: center;
+        color: #888;
+        font-size: 0.8rem;
+        margin-top: 0.4rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# ---------- HEADER ----------
+st.markdown("""
+<div class="app-header">
+    <h1>QueryTune</h1>
+</div>
+""", unsafe_allow_html=True)
+
+# ---------- STREAMLIT UI LAYOUT ----------
+col1, col2 = st.columns(2, gap="large")
+
+# ---- Left: Input SQL ---- #
+with col1:
     st.subheader("Input SQL Query")
-    query_input = st.text_area("Paste your query here:", height=350, key="input_query")
+    sql_input = st.text_area(
+        "",
+        height=500,
+        placeholder="Paste your SQL query here...",
+        key="input_query",
+    )
 
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("🧹 Reset"):
-            st.session_state["input_query"] = ""
-            st.session_state["output_query"] = ""
-
-    with c2:
-        if st.button("📋 Copy Input"):
-            pyperclip.copy(st.session_state.get("input_query", ""))
-
-with right:
+# ---- Right: Output SQL ---- #
+with col2:
     st.subheader("Transformed Query")
 
+    # Display Transformed Query
+    output_box = st.empty()
     if "output_query" not in st.session_state:
         st.session_state["output_query"] = ""
 
-    st.code(st.session_state["output_query"], language="sql")
+    output_box.markdown(
+        f"<div class='sql-box'>{st.session_state['output_query']}</div>",
+        unsafe_allow_html=True,
+    )
 
-    c3, c4 = st.columns(2)
-    with c3:
-        if st.button("🚀 Generate (Ctrl/Cmd + Enter)"):
-            input_sql = st.session_state.get("input_query", "")
-            st.session_state["output_query"] = transform_query(input_sql, col_mapping)
-    with c4:
-        if st.button("📋 Copy Output"):
-            pyperclip.copy(st.session_state.get("output_query", ""))
+    # Buttons side-by-side below output
+    button_col1, button_col2 = st.columns([1, 1])
+    with button_col1:
+        generate_clicked = st.button("Generate", key="generate_btn", use_container_width=True)
+    with button_col2:
+        copy_output = st.button("Copy Output", key="copy_btn", use_container_width=True)
 
-# Keyboard shortcut
+# ---------- BUTTON ACTIONS ----------
+if generate_clicked or st.session_state.get("trigger_generate", False):
+    transformed = transform_query(sql_input, PARTITION_COLS)
+    st.session_state["output_query"] = transformed
+    output_box.markdown(
+        f"<div class='sql-box'>{transformed}</div>", unsafe_allow_html=True
+    )
+    st.session_state["trigger_generate"] = False
+
+if copy_output and st.session_state["output_query"]:
+    pyperclip.copy(st.session_state["output_query"])
+    st.toast("✅ Transformed query copied to clipboard!", icon="📋")
+
+# ---------- KEYBOARD SHORTCUT (JS) ----------
 st.markdown("""
 <script>
-document.addEventListener('keydown', function(event) {
-    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-        const btn = Array.from(document.querySelectorAll('button'))
-            .find(b => b.innerText.includes('Generate'));
-        if (btn) btn.click();
+document.addEventListener("keydown", function(event) {
+    if ((event.metaKey && event.key === "Enter") || (event.ctrlKey && event.key === "Enter")) {
+        const generateBtn = window.parent.document.querySelector('button[kind="secondary"]');
+        if (generateBtn) generateBtn.click();
+        window.parent.postMessage({type: 'streamlit:setSessionState', key: 'trigger_generate', value: true}, '*');
     }
 });
 </script>
 """, unsafe_allow_html=True)
-
-# Sidebar instructions
-with st.sidebar:
-    st.markdown("### ⚙️ How to Use QueryTune")
-    st.markdown("""
-    1. Paste your SQL query on the left.
-    2. Click **Generate** or press **Ctrl/Cmd + Enter**.
-    3. View your transformed query on the right.
-    4. Use **Copy** to quickly copy either query.
-    """)
