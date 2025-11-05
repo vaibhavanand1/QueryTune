@@ -2,6 +2,7 @@ import streamlit as st
 import pyperclip
 import sqlglot
 from sqlglot import exp
+import streamlit.components.v1 as components
 
 # ----------------------------------------------------------
 PARTITION_COLS = {
@@ -590,10 +591,27 @@ if generate_clicked or st.session_state.get("trigger_generate", False):
     st.session_state["trigger_generate"] = False
 
 if copy_output and st.session_state["output_query"]:
-    # Use JS-based copy since Streamlit Cloud has no system clipboard
-    st.markdown(f"""
+    components.html(
+        f"""
         <script>
-        navigator.clipboard.writeText(`{st.session_state["output_query"]}`);
+        const text = `{st.session_state["output_query"].replace("`", "\\`")}`;
+        navigator.clipboard.writeText(text).then(() => {{
+            const toast = window.parent.document.createElement("div");
+            toast.innerText = "✅ Transformed query copied to clipboard!";
+            toast.style.position = "fixed";
+            toast.style.bottom = "30px";
+            toast.style.right = "30px";
+            toast.style.background = "#0e76fd";
+            toast.style.color = "white";
+            toast.style.padding = "10px 20px";
+            toast.style.borderRadius = "10px";
+            toast.style.zIndex = "9999";
+            toast.style.fontFamily = "sans-serif";
+            window.parent.document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }});
         </script>
-    """, unsafe_allow_html=True)
-    st.toast("✅ Transformed query copied to clipboard!", icon="📋")
+        """,
+        height=0,
+        width=0,
+    )
