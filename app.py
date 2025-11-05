@@ -1,5 +1,5 @@
 import streamlit as st
-import pyperclip
+# import pyperclip
 import sqlglot
 from sqlglot import exp
 import platform
@@ -591,18 +591,18 @@ if generate_clicked or st.session_state.get("trigger_generate", False):
     st.session_state["trigger_generate"] = False
 
 if copy_output and st.session_state["output_query"]:
-    try:
-        # Detect local environment (macOS, Windows, Linux desktop)
-        if platform.system() in ["Darwin", "Windows", "Linux"]:
-            pyperclip.copy(st.session_state["output_query"])
-            st.toast("✅ Copied to clipboard (local)!", icon="📋")
-        else:
-            raise pyperclip.PyperclipException("Non-local environment detected.")
-    except pyperclip.PyperclipException:
-        # Fallback for Streamlit Cloud or remote environments
-        st.markdown(f"""
-            <script>
-            navigator.clipboard.writeText(`{st.session_state["output_query"]}`);
-            </script>
-        """, unsafe_allow_html=True)
-        st.toast("✅ Copied to clipboard (web)!", icon="📋")
+    # Safely escape backticks and backslashes for JS string
+    safe_query = (
+        st.session_state["output_query"]
+        .replace("\\", "\\\\")
+        .replace("`", "\\`")
+    )
+
+    # Use JavaScript to copy text (works on Streamlit Cloud)
+    st.markdown(f"""
+        <script>
+        navigator.clipboard.writeText(`{safe_query}`);
+        </script>
+    """, unsafe_allow_html=True)
+
+    st.toast("✅ Copied to clipboard!", icon="📋")
