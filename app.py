@@ -1,5 +1,5 @@
 import streamlit as st
-import pyperclip
+# import pyperclip
 import sqlglot
 from sqlglot import exp
 
@@ -590,18 +590,13 @@ if generate_clicked or st.session_state.get("trigger_generate", False):
     st.session_state["trigger_generate"] = False
 
 if copy_output and st.session_state["output_query"]:
-    pyperclip.copy(st.session_state["output_query"])
+    # Use browser clipboard API (works on Streamlit Cloud)
+    st.markdown(
+        f"""
+        <script>
+        navigator.clipboard.writeText({st.session_state["output_query"]!r});
+        </script>
+        """,
+        unsafe_allow_html=True
+    )
     st.toast("✅ Transformed query copied to clipboard!", icon="📋")
-
-# ---------- KEYBOARD SHORTCUT (JS) ----------
-st.markdown("""
-<script>
-document.addEventListener("keydown", function(event) {
-    if ((event.metaKey && event.key === "Enter") || (event.ctrlKey && event.key === "Enter")) {
-        const generateBtn = window.parent.document.querySelector('button[kind="secondary"]');
-        if (generateBtn) generateBtn.click();
-        window.parent.postMessage({type: 'streamlit:setSessionState', key: 'trigger_generate', value: true}, '*');
-    }
-});
-</script>
-""", unsafe_allow_html=True)
