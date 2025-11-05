@@ -2,7 +2,7 @@ import streamlit as st
 import pyperclip
 import sqlglot
 from sqlglot import exp
-import streamlit.components.v1 as components
+import platform
 
 # ----------------------------------------------------------
 PARTITION_COLS = {
@@ -590,6 +590,19 @@ if generate_clicked or st.session_state.get("trigger_generate", False):
     )
     st.session_state["trigger_generate"] = False
 
-if copy_output:
-    pyperclip.copy(st.session_state["output_query"])
-    st.toast("Copied to clipboard!")
+if copy_output and st.session_state["output_query"]:
+    try:
+        # Detect local environment (macOS, Windows, Linux desktop)
+        if platform.system() in ["Darwin", "Windows", "Linux"]:
+            pyperclip.copy(st.session_state["output_query"])
+            st.toast("✅ Copied to clipboard (local)!", icon="📋")
+        else:
+            raise pyperclip.PyperclipException("Non-local environment detected.")
+    except pyperclip.PyperclipException:
+        # Fallback for Streamlit Cloud or remote environments
+        st.markdown(f"""
+            <script>
+            navigator.clipboard.writeText(`{st.session_state["output_query"]}`);
+            </script>
+        """, unsafe_allow_html=True)
+        st.toast("✅ Copied to clipboard (web)!", icon="📋")
