@@ -396,12 +396,14 @@ def transform_query(query: str, PARTITION_COLS: dict) -> str:
 
 
     def get_table_alias_or_name(table_exp: exp.Table):
-        """
-        Safely return alias if present, otherwise table name.
-        """
-        if table_exp.alias:
-            return table_exp.alias
-        return table_exp.name
+        # """
+        # Safely return alias if present, otherwise table name.
+        # """
+        # if table_exp.alias:
+        #     return table_exp.alias
+        # return table_exp.name
+        """Return table alias if present, else None."""
+        return table_exp.alias or None
 
 
     def add_partition_to_where(select_exp: exp.Select, alias: str, partition_col: str):
