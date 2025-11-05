@@ -464,6 +464,8 @@ def transform_query(query: str, PARTITION_COLS: dict) -> str:
 # ====================================================
 # 🖥️ Streamlit UI
 # ====================================================
+import streamlit as st
+
 # ---------- PAGE CONFIG ----------
 st.set_page_config(
     page_title="QueryTune",
@@ -472,45 +474,22 @@ st.set_page_config(
 )
 
 st.title("QueryTune - sql partition filter adder")
-# st.write("Automatically adds partition filters to all tables in your SQL query.")
 
-input_query = st.text_area("", height=300, key="input_query", placeholder="Paste your sql query here...")
+# ---------- INPUT QUERY ----------
+input_query = st.text_area(
+    "",
+    height=300,
+    key="input_query",
+    placeholder="Paste your sql query here..."
+)
 
-col1, col2 = st.columns(2)
-with col1:
-    run_button = st.button("➕ Add Partition Filters", type="primary")
-with col2:
-    copy_button = st.button("📋 Copy Transformed Query")
+# ---------- RUN BUTTON ----------
+if st.button("➕ Add Partition Filters", type="primary"):
+    if input_query.strip():
+        transformed = transform_query(input_query, PARTITION_COLS)
+        st.session_state["output_query"] = transformed
 
-# -----------------------------
-
-if run_button and input_query.strip():
-    transformed = transform_query(input_query, PARTITION_COLS)
-    st.session_state["output_query"] = transformed
-    # st.code(transformed, language="sql")
-
+# ---------- OUTPUT QUERY ----------
 if "output_query" in st.session_state and st.session_state["output_query"]:
     st.subheader("Transformed Query:")
     st.code(st.session_state["output_query"], language="sql")
-
-if copy_button and "output_query" in st.session_state and st.session_state["output_query"]:
-    output_text = st.session_state["output_query"].strip()
-    st.toast("✅ Copied to clipboard!", icon="📋")
-
-    # --- 1️⃣ Local environment fallback using pyperclip ---
-    try:
-        import pyperclip
-        pyperclip.copy(output_text)
-    except Exception:
-        # --- 2️⃣ Streamlit Cloud fallback: Browser JS ---
-        st.components.v1.html(
-            f"""
-            <textarea id="copyTarget" style="opacity:0;">{output_text}</textarea>
-            <script>
-            const textArea = document.getElementById('copyTarget');
-            textArea.select();
-            document.execCommand('copy');
-            </script>
-            """,
-            height=0,
-        )
