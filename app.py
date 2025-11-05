@@ -475,16 +475,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# st.title("QueryTune - sql partition filter adder")
-st.markdown(
-    """
-    <h1 style='display: flex; align-items: center; gap: 10px;'>
-        <img src='/Users/vaibh/Documents/QueryTune_App/QueryTune/images/code.png' width='40'>
-        QueryTune - SQL partition filter adder
-    </h1>
-    """,
-    unsafe_allow_html=True
-)
+st.title("QueryTune - sql partition filter adder")
 
 # ---------- INPUT QUERY ----------
 input_query = st.text_area(
