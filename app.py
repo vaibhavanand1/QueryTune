@@ -328,7 +328,7 @@ def transform_query(query: str, PARTITION_COLS: dict) -> str:
             process_select(this_exp.this)
 
         elif isinstance(this_exp, exp.Table):
-            table_name = this_exp.name
+            table_name = this_exp.db + "." + this_exp.name
             alias = get_table_alias_or_name(this_exp)
             partition_col = get_partition_col(table_name)
             if partition_col:
@@ -345,7 +345,7 @@ def transform_query(query: str, PARTITION_COLS: dict) -> str:
             process_select(this_exp.this)
 
         elif isinstance(this_exp, exp.Table):
-            table_name = this_exp.name
+            table_name = this_exp.db + "." + this_exp.name
             alias = get_table_alias_or_name(this_exp)
             partition_col = get_partition_col(table_name)
             if partition_col:
@@ -360,11 +360,14 @@ def transform_query(query: str, PARTITION_COLS: dict) -> str:
         Returns partition column name for a table (match by suffix or full name).
         """
         table_name_lower = table_name.lower()
-        for full_name, part_col in PARTITION_COLS.items():
-            if full_name.endswith(table_name):
-                return part_col
-        return None
-
+        # for full_name, part_col in PARTITION_COLS.items():
+        #     if full_name.endswith(table_name):
+        #         return part_col
+        # return None
+        try:
+            return PARTITION_COLS[table_name_lower]
+        except KeyError:
+            return None
 
     def get_table_alias_or_name(table_exp: exp.Table):
         # """
