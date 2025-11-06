@@ -431,7 +431,7 @@ def transform_query(query: str, PARTITION_COLS: dict) -> str:
     
     parsed = sqlglot.parse_one(query, read='trino')
     processed = process_all_selects(parsed)
-    processed_query = processed.sql(pretty=True, dialect='trino')
+    processed_query = processed.sql(pretty=True, dialect='trino').lower()
     return processed_query
 
 # ====================================================
