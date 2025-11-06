@@ -458,7 +458,7 @@ def transform_query(query: str, PARTITION_COLS: dict) -> str:
         combined = exp.and_(on_exp, new_condition)
         join_exp.set("on", combined)
     
-    parsed = sqlglot.parse_one(query, readers='trino')
+    parsed = sqlglot.parse_one(query, read='trino')
     processed = process_all_selects(parsed)
     processed_query = processed.sql(pretty=True, dialect='trino')
     return processed_query
