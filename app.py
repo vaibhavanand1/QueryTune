@@ -395,6 +395,7 @@ def transform_query(query: str, PARTITION_COLS: dict) -> str:
             if isinstance(c, exp.Is)
             and isinstance(c.this, exp.Column)
             and c.this.name == partition_col
+            and (c.this.table or None) == (alias or None)
         ]
         if existing_conditions:
             return  # skip duplicates
@@ -424,6 +425,7 @@ def transform_query(query: str, PARTITION_COLS: dict) -> str:
         existing_conditions = [
             c for c in on_exp.find_all(exp.Is)
             if isinstance(c.this, exp.Column) and c.this.name == partition_col
+            and (c.this.table or None) == (alias or None)
         ]
         if existing_conditions:
             return
