@@ -7,6 +7,7 @@ import streamlit.components.v1 as components
 
 # ----------------------------------------------------------
 PARTITION_COLS = {
+    "sp_car_inventory.sp_car_inventory_inventory": "created_at",
     "sp_refurb.dashboard_jobrow": "created_at",
     "sp_refurb.dashboard_jobrow_sub_job_row": "id",
     "sp_refurb.dashboard_subjobrow": "created_at",
